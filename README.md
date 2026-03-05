@@ -11,7 +11,6 @@
 - **Notifications / Reporting**: workers for side effects + projections
 - **Audit hash-chain** + verify endpoint
 
-> Synthetic data only. No real bank integrations.
 
 ## Run
 ```bash
