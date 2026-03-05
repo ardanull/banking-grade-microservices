@@ -1,6 +1,4 @@
-# Banking-Grade Platform (Master-grade Portfolio) — .NET 10 (C#)
-
-Backend-only demo inspired by large banking backends.
+# Banking-Grade Platform
 
 ## Highlights
 - **Gateway**: HMAC signing + replay protection + idempotency + Redis rate limiting
