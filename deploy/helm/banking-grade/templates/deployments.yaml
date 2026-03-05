@@ -1,0 +1,45 @@
+{{- $services := list
+  (dict "name" "gateway" "port" 8080)
+  (dict "name" "iam" "port" 8081)
+  (dict "name" "alerts" "port" 8082)
+  (dict "name" "accounts" "port" 8083)
+  (dict "name" "ledger" "port" 8084)
+  (dict "name" "payments" "port" 8085)
+}}
+{{- range $s := $services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $s.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: {{ $.Release.Name }}-{{ $s.name }} }
+  template:
+    metadata:
+      labels: { app: {{ $.Release.Name }}-{{ $s.name }} }
+    spec:
+      containers:
+      - name: {{ $s.name }}
+        image: "{{ $.Values.image.repository }}/{{ $s.name }}:{{ $.Values.image.tag }}"
+        ports:
+        - containerPort: {{ $s.port }}
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://0.0.0.0:{{ $s.port }}"
+        - name: PG_URL
+          value: {{ $.Values.env.PG_URL | quote }}
+        - name: REDIS_URL
+          value: {{ $.Values.env.REDIS_URL | quote }}
+        - name: AMQP_URL
+          value: {{ $.Values.env.AMQP_URL | quote }}
+        - name: JWT_ISSUER
+          value: {{ $.Values.env.JWT_ISSUER | quote }}
+        - name: JWT_AUDIENCE
+          value: {{ $.Values.env.JWT_AUDIENCE | quote }}
+        - name: JWT_SIGNING_KEY
+          value: {{ $.Values.env.JWT_SIGNING_KEY | quote }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ $.Values.env.OTEL_EXPORTER_OTLP_ENDPOINT | quote }}
+---
+{{- end }}

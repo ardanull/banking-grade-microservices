@@ -1,0 +1,158 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U demo -d demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  redis:
+    image: redis:7
+    command: ["redis-server","--appendonly","yes"]
+    ports: ["6379:6379"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["5672:5672","15672:15672"]
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  gateway:
+    build: ./src/Gateway
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      rabbitmq: { condition: service_started }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      REDIS_URL: redis:6379
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      HMAC_CLIENTS_JSON: '{"demo-client":"demo-secret"}'
+      RATE_LIMIT_RPS: "5"
+      AUDIT_SERVICE_NAME: gateway
+    ports: ["8080:8080"]
+
+  iam:
+    build: ./src/Iam
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8081
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      ADMIN_SEED_EMAIL: admin@demo.local
+      ADMIN_SEED_PASSWORD: Admin123!
+      JWT_ISSUER: demo-iam
+      JWT_AUDIENCE: demo-platform
+      JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+      AUDIT_SERVICE_NAME: iam
+    ports: ["8081:8081"]
+
+  accounts:
+    build: ./src/Accounts
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8083
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      JWT_ISSUER: demo-iam
+      JWT_AUDIENCE: demo-platform
+      JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+      AUDIT_SERVICE_NAME: accounts
+    ports: ["8083:8083"]
+
+  ledger:
+    build: ./src/Ledger
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8084
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      JWT_ISSUER: demo-iam
+      JWT_AUDIENCE: demo-platform
+      JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+      AUDIT_SERVICE_NAME: ledger
+    ports: ["8084:8084"]
+
+  payments:
+    build: ./src/Payments
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_started }
+      redis: { condition: service_started }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8085
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_URL: redis:6379
+      JWT_ISSUER: demo-iam
+      JWT_AUDIENCE: demo-platform
+      JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+      AUDIT_SERVICE_NAME: payments
+    ports: ["8085:8085"]
+
+  alerts:
+    build: ./src/Alerts
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_started }
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8082
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=40;
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      JWT_ISSUER: demo-iam
+      JWT_AUDIENCE: demo-platform
+      JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+      AUDIT_SERVICE_NAME: alerts
+    ports: ["8082:8082"]
+
+  scoring:
+    build: ./src/Scoring
+    depends_on:
+      redis: { condition: service_started }
+      rabbitmq: { condition: service_started }
+    environment:
+      REDIS_URL: redis:6379
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AUDIT_SERVICE_NAME: scoring
+
+  notifications:
+    build: ./src/Notifications
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_started }
+    environment:
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=20;
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AUDIT_SERVICE_NAME: notifications
+
+  reporting:
+    build: ./src/Reporting
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_started }
+    environment:
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=20;
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AUDIT_SERVICE_NAME: reporting
+
+  settlement:
+    build: ./src/Workers/Settlement
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_started }
+    environment:
+      PG_URL: Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;Pooling=true;Maximum Pool Size=20;
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AUDIT_SERVICE_NAME: settlement
+
+volumes:
+  pgdata:

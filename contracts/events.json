@@ -1,0 +1,48 @@
+{
+  "transaction.created": {
+    "required": [
+      "id",
+      "userId",
+      "amount",
+      "currency",
+      "country",
+      "channel",
+      "merchantCategory",
+      "deviceId",
+      "createdAt"
+    ]
+  },
+  "payment.created": {
+    "required": [
+      "id",
+      "fromAccountId",
+      "toIban",
+      "amount",
+      "currency",
+      "channel",
+      "holdId",
+      "createdAt"
+    ]
+  },
+  "payment.settled": {
+    "required": [
+      "id",
+      "journalId"
+    ]
+  },
+  "payment.failed": {
+    "required": [
+      "id",
+      "reason"
+    ]
+  },
+  "alert.created": {
+    "required": [
+      "id",
+      "transactionId",
+      "severity",
+      "status",
+      "reason"
+    ]
+  }
+}

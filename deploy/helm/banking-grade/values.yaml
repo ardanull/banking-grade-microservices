@@ -1,0 +1,11 @@
+image:
+  repository: yourrepo/banking-grade
+  tag: latest
+env:
+  PG_URL: "Host=postgres;Port=5432;Database=demo;Username=demo;Password=demo;"
+  REDIS_URL: "redis:6379"
+  AMQP_URL: "amqp://guest:guest@rabbitmq:5672"
+  JWT_ISSUER: "demo-iam"
+  JWT_AUDIENCE: "demo-platform"
+  JWT_SIGNING_KEY: "dev-only-super-secret-change-me"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"

@@ -1,0 +1,1 @@
+namespace Common; public static class Env{ public static string Require(string n)=>Environment.GetEnvironmentVariable(n)??throw new InvalidOperationException($"Missing env var: {n}"); public static string Get(string n,string f)=>Environment.GetEnvironmentVariable(n)??f; }
